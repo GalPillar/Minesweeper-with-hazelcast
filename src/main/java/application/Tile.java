@@ -50,7 +50,12 @@ class Tile extends StackPane {
 	}
 
 	private void onClick(MouseEvent e) {
-		
+		Main.replicatedMap.put(Math.round(Math.random()*100), "aaa");
+
+		System.out.println(Main.replicatedMap.keySet());
+		System.out.println(Main.replicatedMap.values());
+		System.out.println(Main.replicatedMap.entrySet());
+
 		if (Main.sound) {
 			AudioClip click = new AudioClip(Main.class.getResource("/click.wav").toString());
 			click.play();

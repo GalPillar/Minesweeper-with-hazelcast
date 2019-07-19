@@ -8,6 +8,8 @@ import com.hazelcast.config.Config;
 import com.hazelcast.config.JoinConfig;
 import com.hazelcast.config.NetworkConfig;
 import com.hazelcast.core.Hazelcast;
+import com.hazelcast.core.HazelcastInstance;
+import com.hazelcast.core.ReplicatedMap;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.scene.Parent;
@@ -46,18 +48,24 @@ public class Main extends Application {
 
 	static boolean sound = true;
 
+	public static ReplicatedMap replicatedMap;
+
+
+
 	@Override
 	public void start(Stage stage) {
-		Hazelcast hazelcast;
 		Config config = new Config();
+		config.getGroupConfig().setName("1");
 		NetworkConfig network = config.getNetworkConfig();
 		network.setPort(5701).setPortCount(20);
 		network.setPortAutoIncrement(true);
 		JoinConfig join = network.getJoin();
-		join.getMulticastConfig().setEnabled(false);
 		join.getTcpIpConfig()
-				.addMember("machine1")
-				.addMember("localhost").setEnabled(true);
+				.addMember("localhost")
+				.setEnabled(true);
+		HazelcastInstance hazelcastInstance = Hazelcast.newHazelcastInstance();
+		replicatedMap = hazelcastInstance.getReplicatedMap("1");
+
 		grid = new Tile[gridSize][gridSize];
 
 		TimerTask task = new TimerTask() {
