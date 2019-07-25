@@ -1,124 +1,85 @@
 package application;
 
-import javafx.scene.paint.Color;
-
-import java.util.ArrayList;
-
+import com.hazelcast.core.EntryEvent;
+import com.hazelcast.core.EntryListener;
+import com.hazelcast.core.MapEvent;
+import javafx.application.Platform;
 import javafx.scene.control.Button;
-import javafx.scene.image.Image;
-import javafx.scene.image.ImageView;
-import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.StackPane;
-import javafx.scene.media.AudioClip;
+
+import java.util.Optional;
 
 
-class Tile extends StackPane {
+class Tile extends StackPane implements EntryListener {
 
 	Button btn = new Button();
 	int x, y = 0;
-	boolean hasBomb;
-	int numBombs = 0;
-	Color color = null;
-	boolean flagged = false;
-	ArrayList<Tile> neighbours = new ArrayList<Tile>();
-	boolean active = true;
-	
-	static Image flag = new Image(Class.class.getResource("/flag.png").toString());
+	Long num;
 
-	public Tile(int x, int y, boolean hasBomb) {
+	public Tile(int x, int y, Long num){
 		this.x = x;
 		this.y = y;
-		this.hasBomb = hasBomb;
+		this.num = num;
+		initTile(x, y, Optional.of(num));
+	}
 
-		if (hasBomb) {
-			Main.numBombs++;
-		}
+	public Tile(int x, int y) {
+		this.x = x;
+		this.y = y;
+		initTile(x, y, Optional.empty());
+	}
 
+	private void initTile(int x, int y, Optional<Long> num) {
 		btn.setMinHeight(40);
 		btn.setMinWidth(40);
-
 		btn.setOnMouseClicked(e -> {
 			onClick(e);
 		});
-
 		getChildren().addAll(btn);
-
 		setTranslateX(x * 40);
 		setTranslateY(y * 40);
-
+		num.ifPresent(aLong -> btn.setText(aLong.toString()));
 	}
 
 	private void onClick(MouseEvent e) {
-		Main.replicatedMap.put(Math.round(Math.random()*100), "aaa");
-
-		System.out.println(Main.replicatedMap.keySet());
-		System.out.println(Main.replicatedMap.values());
-		System.out.println(Main.replicatedMap.entrySet());
-
-		if (Main.sound) {
-			AudioClip click = new AudioClip(Main.class.getResource("/click.wav").toString());
-			click.play();
-		}
-
-		// Left Click
-		if (e.getButton() == MouseButton.PRIMARY) {
-			if(!flagged) {
-
-			btn.setBackground(null);
-			btn.setDisable(true);
-			active = false;
-
-			if (hasBomb) {
-				Main.gameOver();
-			} else {
-				// Blank
-				if (this.numBombs == 0) {
-					blankClick(this);
-				} else {
-					btn.setText(Integer.toString(numBombs));
-					btn.setTextFill(color);
-				}
-			}
-			}
-		}
-		// Right Click
-		else {
-			if (!flagged) {
-				flagged = true;
-				btn.setGraphic(new ImageView(flag));
-				if (this.hasBomb) {
-					Main.foundBombs++;
-					if (Main.foundBombs == Main.numBombs) {
-						Main.win();
-					}
-				}
-			} else {
-				if (hasBomb) {
-					Main.foundBombs--;
-				}
-				btn.setGraphic(null);
-				flagged = false;
-			}
-		}
+		btn.setBackground(null);
+		num = Math.round(Math.random()*100);
+		btn.setText(num.toString());
+		Main.replicatedMap.put(Main.mapLocation(x, y), num);
 	}
 
-	private void blankClick(Tile tile) {
-
-		for (int i = 0; i < tile.neighbours.size(); i++) {
-			if (tile.neighbours.get(i).active) {
-				tile.neighbours.get(i).btn.setDisable(true);
-				tile.neighbours.get(i).btn.setGraphic(null);
-				tile.neighbours.get(i).btn.setText(Integer.toString(tile.neighbours.get(i).numBombs));
-				tile.neighbours.get(i).btn.setTextFill(tile.neighbours.get(i).color);
-				tile.neighbours.get(i).active = false;
-				if (tile.neighbours.get(i).numBombs == 0) {
-					blankClick(tile.neighbours.get(i));
-				}
-
-			}
-		}
-		return;
+	public void onChange(Long value){
+		btn.setBackground(null);
+		btn.setText(null);
+		btn.setText(value.toString());
 	}
 
+	@Override
+	public void entryAdded(EntryEvent event) {
+		Platform.runLater(() -> onChange((Long)event.getValue()));
+	}
+
+	@Override
+	public void entryEvicted(EntryEvent event) {
+
+	}
+
+	@Override
+	public void entryRemoved(EntryEvent event) {
+
+	}
+
+	@Override
+	public void entryUpdated(EntryEvent event) {
+		Platform.runLater(() -> onChange((Long)event.getValue()));
+	}
+
+	@Override
+	public void mapCleared(MapEvent event) {
+	}
+
+	@Override
+	public void mapEvicted(MapEvent event) {
+	}
 }
